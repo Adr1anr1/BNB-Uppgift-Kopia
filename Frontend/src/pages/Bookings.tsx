@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, deleteBooking } from '../lib/api';
 import type { Booking, Property } from '../types';
 
 export default function BookingsPage() {
@@ -41,6 +41,14 @@ export default function BookingsPage() {
     } catch (e: any) { setErr(e.message); }
   }
 
+  async function removeBooking(id: string) {
+    setErr(null);
+    try {
+      await deleteBooking(id);
+      await load();
+    } catch (e: any) { setErr(e.message); }
+  }
+
   return (
     <div>
       <h2>Bookings</h2>
@@ -63,6 +71,9 @@ export default function BookingsPage() {
             <div><b>Property:</b> {propName}</div>
             <div><b>Check-in:</b> {b.check_in_date} — <b>Check-out:</b> {b.check_out_date}</div>
             <div><b>Totalpris:</b> {b.total_price} kr</div>
+            <div>
+              <button onClick={() => removeBooking(b.id)} aria-label={`Radera bokning ${b.id}`}>Radera</button>
+            </div>
           </li>
         );})}
       </ul>

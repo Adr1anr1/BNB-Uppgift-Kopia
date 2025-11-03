@@ -5,9 +5,16 @@ export const bookings = new Hono();
 
 bookings.get("/", async (c) => {
   const supa = supaForReq(c.req);
-  const { data, error } = await supa.from("bookings").select("*").order("created_at", { ascending: false });
+  const userId = getUserId(c.req);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+
+  const { data, error } = await supa
+    .from("bookings")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
   if (error) return c.json({ error: error.message }, 400);
-  return c.json(data);
+  return c.json(data ?? []);
 });
 
 bookings.post("/", async (c) => {
@@ -58,7 +65,16 @@ bookings.post("/", async (c) => {
 
 bookings.delete("/:id", async (c) => {
   const id = c.req.param("id");
-  const { error } = await supaForReq(c.req).from("bookings").delete().eq("id", id);
+  const userId = getUserId(c.req);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+
+  const { error, count } = await supaForReq(c.req)
+    .from("bookings")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("user_id", userId);
+
   if (error) return c.json({ error: error.message }, 400);
+  if ((count ?? 0) === 0) return c.json({ error: "Not found" }, 404);
   return c.json({ ok: true });
 });

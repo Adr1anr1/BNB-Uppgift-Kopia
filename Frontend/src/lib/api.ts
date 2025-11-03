@@ -71,3 +71,8 @@ export function apiFetch(path: string, opts?: ApiOptions) {
 export const api = apiFetch;
 
 export default apiFetch;
+
+// Convenience helpers
+export async function deleteBooking(id: string) {
+  return apiFetch(`/bookings/${id}`, { method: "DELETE" });
+}
