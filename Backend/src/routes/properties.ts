@@ -32,9 +32,17 @@ properties.post("/", async (c) => {
   const uid = getUserId(c.req);
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
 
-  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  type PropertyCreateBody = {
+    name?: string;
+    description?: string | null;
+    location?: string | null;
+    pricePerNight?: number | string;
+    price_per_night?: number | string;
+  };
 
-  const name = String(body.name ?? "").trim();
+  const body = (await c.req.json().catch(() => ({}))) as PropertyCreateBody;
+
+  const name = String((body.name ?? "")).trim();
   const description =
     body.description === undefined || body.description === null
       ? null
@@ -44,11 +52,9 @@ properties.post("/", async (c) => {
       ? null
       : String(body.location);
 
-  // Frontend skickar "pricePerNight", DB fältet heter "price_per_night"
-  const price =
-    (body as any).price_per_night !== undefined
-      ? Number((body as any).price_per_night)
-      : Number((body as any).pricePerNight);
+  // Frontend kan skicka pricePerNight eller price_per_night
+  const rawPrice = body.price_per_night ?? body.pricePerNight;
+  const price = rawPrice !== undefined ? Number(rawPrice) : Number.NaN;
 
   if (!name || Number.isNaN(price) || price < 0) {
     return c.json({ error: "Bad input: name and pricePerNight required" }, 400);
@@ -79,22 +85,30 @@ properties.put("/:id", async (c) => {
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
 
   const id = c.req.param("id");
-  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  type PropertyUpdateBody = {
+    name?: string;
+    description?: string | null;
+    location?: string | null;
+    pricePerNight?: number | string;
+    price_per_night?: number | string;
+  };
+  const body = (await c.req.json().catch(() => ({}))) as PropertyUpdateBody;
 
   const patch: Partial<PropertyRow> = {};
 
   if (typeof body.name === "string") patch.name = body.name;
   if (typeof body.description === "string" || body.description === null)
-    patch.description = (body as any).description ?? null;
+    patch.description = body.description ?? null;
   if (typeof body.location === "string" || body.location === null)
-    patch.location = (body as any).location ?? null;
+    patch.location = body.location ?? null;
 
-  const price =
-    (body as any).price_per_night !== undefined
-      ? Number((body as any).price_per_night)
-      : (body as any).pricePerNight !== undefined
-      ? Number((body as any).pricePerNight)
+  const rawPrice =
+    body.price_per_night !== undefined
+      ? body.price_per_night
+      : body.pricePerNight !== undefined
+      ? body.pricePerNight
       : undefined;
+  const price = rawPrice !== undefined ? Number(rawPrice) : undefined;
 
   if (price !== undefined) {
     if (Number.isNaN(price) || price < 0) {
